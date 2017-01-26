@@ -1,8 +1,43 @@
 from traitlets import Unicode
 from traitlets.config import Application
 from abc import abstractmethod
+import logging
 
-from ctapipe import version
+from ctapipe import __version__ as version
+
+
+class ColoredFormatter(logging.Formatter):
+    """
+    Custom logging.Formatter that adds colors in addition to the original
+    Application logger functionality from LevelFormatter (in application.py)
+    """
+    highlevel_limit = logging.WARN
+    highlevel_format = " %(levelname)s |"
+
+    def format(self, record):
+        black, red, green, yellow, blue, magenta, cyan, white = range(8)
+        reset_seq = "\033[0m"
+        color_seq = "\033[1;%dm"
+        colors = {
+            'WARNING': yellow,
+            'INFO': green,
+            'DEBUG': blue,
+            'CRITICAL': yellow,
+            'ERROR': red
+        }
+
+        levelname = record.levelname
+        if levelname in colors:
+            levelname_color = color_seq % (30 + colors[levelname]) \
+                              + levelname + reset_seq
+            record.levelname = levelname_color
+
+        if record.levelno >= self.highlevel_limit:
+            record.highlevel = self.highlevel_format % record.__dict__
+        else:
+            record.highlevel = ""
+
+        return super(ColoredFormatter, self).format(record)
 
 
 class Tool(Application):
@@ -91,6 +126,8 @@ class Tool(Application):
                                 "parameters to load in addition to "
                                 "command-line parameters")).tag(config=True)
 
+    _log_formatter_cls = ColoredFormatter
+
     def __init__(self, **kwargs):
         # make sure there are some default aliases in all Tools:
         if self.aliases:
@@ -150,6 +187,6 @@ class Tool(Application):
     @property
     def version_string(self):
         """ a formatted version string with version, release, and git hash"""
-        return "{} [release={}] [githash={}]".format(version.version,
-                                                     version.release,
-                                                     version.githash)
+        return "{} [release={}] [githash={}]".format(version,
+                                                     version.split('+')[0],
+                                                     version.split('+')[1][3:])
