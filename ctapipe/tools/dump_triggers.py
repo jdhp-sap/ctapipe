@@ -4,12 +4,12 @@ simtelarray input file.
 """
 
 import numpy as np
-import ctapipe.io.hessio as hessio
 from astropy import units as u
 from astropy.table import Table
-from astropy.time import Time
-from ctapipe.core.traits import (Unicode, Dict, Bool)
 
+import ctapipe.io.hessio as hessio
+from ctapipe.core import Provenance, ToolConfigurationError
+from ctapipe.core.traits import (Unicode, Dict, Bool)
 from ..core import Tool
 
 MAX_TELS = 1000
@@ -17,6 +17,7 @@ MAX_TELS = 1000
 
 class DumpTriggersTool(Tool):
     description = Unicode(__doc__)
+    name='ctapipe-dump-triggers'
 
     # =============================================
     # configuration parameters:
@@ -85,8 +86,7 @@ class DumpTriggersTool(Tool):
         """ setup function, called before `start()` """
 
         if self.infile == '':
-            raise ValueError("No 'infile' parameter was specified. "
-                             "Use --help for info")
+            raise ToolConfigurationError("No 'infile' parameter was specified. ")
 
         self.events = Table(names=['EVENT_ID', 'T_REL', 'DELTA_T',
                                    'N_TRIG', 'TRIGGERED_TELS'],
@@ -124,6 +124,7 @@ class DumpTriggersTool(Tool):
                               overwrite=self.overwrite)
         else:
             self.events.write(self.outfile)
+        Provenance().add_output_file(self.outfile)
 
         self.log.info("Table written to '{}'".format(self.outfile))
         self.log.info('\n %s', self.events)

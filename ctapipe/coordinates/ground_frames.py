@@ -16,9 +16,17 @@ TODO:
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import (BaseCoordinateFrame, FrameAttribute,
+from astropy.coordinates import (BaseCoordinateFrame,
                                  CartesianRepresentation,
                                  FunctionTransform)
+
+try:
+    # FrameAttribute was renamed Attribute in astropy 2.0
+    # TODO: should really use subclasses like QuantityAttribute
+    from astropy.coordinates import FrameAttribute as Attribute
+except ImportError:
+    from astropy.coordinates import Attribute
+
 
 from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin
@@ -45,7 +53,7 @@ class GroundFrame(BaseCoordinateFrame):
     # Pointing direction of the tilted system (alt,az),
     # could be the telescope pointing direction or the reconstructed shower
     # direction
-    pointing_direction = FrameAttribute(default=None)
+    pointing_direction = Attribute(default=None)
 
 
 class TiltedGroundFrame(BaseCoordinateFrame):
@@ -65,7 +73,7 @@ class TiltedGroundFrame(BaseCoordinateFrame):
     # Pointing direction of the tilted system (alt,az),
     # could be the telescope pointing direction or the reconstructed shower
     # direction
-    pointing_direction = FrameAttribute(default=None)
+    pointing_direction = Attribute(default=None)
 
 # Transformations defined below this point
 
@@ -130,7 +138,7 @@ def ground_to_tilted(ground_coord, tilted_coord):
     y_grd = ground_coord.cartesian.y
     z_grd = ground_coord.cartesian.z
 
-    altitude, azimuth = tilted_coord.pointing_direction
+    altitude, azimuth = tilted_coord.pointing_direction.alt, tilted_coord.pointing_direction.az
     altitude = altitude.to(u.rad)
     azimuth = azimuth.to(u.rad)
     trans = get_shower_trans_matrix(azimuth, altitude)
@@ -163,7 +171,7 @@ def tilted_to_ground(tilted_coord, ground_coord):
     x_tilt = tilted_coord.x
     y_tilt = tilted_coord.y
 
-    altitude, azimuth = tilted_coord.pointing_direction
+    altitude, azimuth = tilted_coord.pointing_direction.alt, tilted_coord.pointing_direction.az
     altitude = altitude.to(u.rad)
     azimuth = azimuth.to(u.rad)
 
@@ -203,8 +211,8 @@ def project_to_ground(tilt_system):
     y_initial = ground_system.y.value
     z_initial = ground_system.z.value
 
-    trans = get_shower_trans_matrix(tilt_system.pointing_direction[1],
-                                    tilt_system.pointing_direction[0])
+    trans = get_shower_trans_matrix(tilt_system.pointing_direction.az,
+                                    tilt_system.pointing_direction.alt)
 
     x_projected = x_initial - trans[2][0] * z_initial / trans[2][2]
     y_projected = y_initial - trans[2][1] * z_initial / trans[2][2]

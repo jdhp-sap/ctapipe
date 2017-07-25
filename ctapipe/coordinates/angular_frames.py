@@ -20,10 +20,17 @@ TODO:
 
 import astropy.units as u
 import numpy as np
-from astropy.coordinates import (BaseCoordinateFrame, FrameAttribute,
+from astropy.coordinates import (BaseCoordinateFrame,
                                  CartesianRepresentation,
                                  UnitSphericalRepresentation,
                                  FunctionTransform, RepresentationMapping)
+
+try:
+    # FrameAttribute was renamed Attribute in astropy 2.0
+    # TODO: should really use subclasses like QuantityAttribute
+    from astropy.coordinates import FrameAttribute as Attribute
+except ImportError:
+    from astropy.coordinates import Attribute
 
 from astropy.coordinates import frame_transform_graph
 from numpy import cos, sin, arctan, arctan2, arcsin, sqrt, arccos, tan
@@ -51,10 +58,10 @@ class CameraFrame(BaseCoordinateFrame):
         Rotation angle of the camera (0 deg in most cases)
     """
     default_representation = CartesianRepresentation
-    focal_length = FrameAttribute(default=None)
-    rotation = FrameAttribute(default=0 * u.deg)
-    pointing_direction = FrameAttribute(default=None)
-    array_direction = FrameAttribute(default=None)
+    focal_length = Attribute(default=None)
+    rotation = Attribute(default=0 * u.deg)
+    pointing_direction = Attribute(default=None)
+    array_direction = Attribute(default=None)
 
 
 class TelescopeFrame(BaseCoordinateFrame):
@@ -75,7 +82,7 @@ class TelescopeFrame(BaseCoordinateFrame):
 
     """
     default_representation = PlanarRepresentation
-    pointing_direction = FrameAttribute(default=None)
+    pointing_direction = Attribute(default=None)
 
 
 class NominalFrame(BaseCoordinateFrame):
@@ -95,8 +102,8 @@ class NominalFrame(BaseCoordinateFrame):
 
     """
     default_representation = PlanarRepresentation
-    pointing_direction = FrameAttribute(default=None)
-    array_direction = FrameAttribute(default=None)
+    pointing_direction = Attribute(default=None)
+    array_direction = Attribute(default=None)
 
 
 class HorizonFrame(BaseCoordinateFrame):
@@ -125,8 +132,8 @@ class HorizonFrame(BaseCoordinateFrame):
 
     frame_specific_representation_info['unitspherical'] = frame_specific_representation_info['spherical']
 
-    pointing_direction = FrameAttribute(default=None)
-    array_direction = FrameAttribute(default=None)
+    pointing_direction = Attribute(default=None)
+    array_direction = Attribute(default=None)
 
 
 # Transformations defined below this point
@@ -262,7 +269,7 @@ def nominal_to_altaz(norm_coord, altaz_coord):
     -------
     AltAz Coordinates
     """
-    alt_norm, az_norm = norm_coord.array_direction
+    alt_norm, az_norm = norm_coord.array_direction.alt, norm_coord.array_direction.az
 
     if type(norm_coord.x.value).__module__ != np.__name__:
         x_off = np.zeros(1)
@@ -297,7 +304,7 @@ def altaz_to_nominal(altaz_coord, norm_coord):
     -------
     nominal Coordinates
     """
-    alt_norm, az_norm = norm_coord.array_direction
+    alt_norm, az_norm = norm_coord.array_direction.alt, norm_coord.array_direction.az
     azimuth = altaz_coord.az
     altitude = altaz_coord.alt
     x_off, y_off = altaz_to_offset(azimuth, altitude, az_norm, alt_norm)
@@ -328,8 +335,8 @@ def telescope_to_nominal(tel_coord, norm_frame):
     -------
     NominalFrame coordinates
     """
-    alt_tel, az_tel = tel_coord.pointing_direction
-    alt_norm, az_norm = norm_frame.array_direction
+    alt_tel, az_tel = tel_coord.pointing_direction.alt, tel_coord.pointing_direction.az
+    alt_norm, az_norm = norm_frame.array_direction.alt, norm_frame.array_direction.az
     alt_trans, az_trans = offset_to_altaz(
         tel_coord.x, tel_coord.y, az_tel, alt_tel)
 
@@ -360,8 +367,8 @@ def nominal_to_telescope(norm_coord, tel_frame):
     TelescopeFrame coordinates
 
     """
-    alt_tel, az_tel = tel_frame.pointing_direction
-    alt_norm, az_norm = norm_coord.array_direction
+    alt_tel, az_tel = tel_frame.pointing_direction.alt, tel_frame.pointing_direction.az
+    alt_norm, az_norm = norm_coord.array_direction.alt, norm_coord.array_direction.az
 
     alt_trans, az_trans = offset_to_altaz(
         norm_coord.x, norm_coord.y, az_norm, alt_norm)
